@@ -2,9 +2,10 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    private Transform _playerTransform;
     [SerializeField] private GameInput gameInput;
-    [SerializeField, Range(1,10)] private float speed=5;
+    [SerializeField] [Range(1, 10)] private float speed = 5;
+    private bool _isWalking;
+    private Transform _playerTransform;
 
     private void Start()
     {
@@ -16,13 +17,13 @@ public class Player : MonoBehaviour
         var inputVector = gameInput.GetMovementVectorNormalised();
 
         var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
-
         _playerTransform.position += moveDir * (Time.deltaTime * speed);
+        _isWalking = moveDir != Vector3.zero;
         transform.forward = Vector3.Slerp(_playerTransform.forward, moveDir, Time.deltaTime * 10);
     }
 
     public bool IsWalking()
     {
-        return Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
+        return _isWalking;
     }
 }
