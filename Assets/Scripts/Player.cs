@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -12,11 +13,32 @@ public class Player : MonoBehaviour
     private bool _isWalking; // Flag to check if player is walking.
     private Vector3 _lastInteractDir; // The last direction the player was facing when interacting.
 
+    private void Start()
+    {
+        gameInput.OnInteractAction += GameInputOnOnInteractAction;
+    }
 
     private void Update()
     {
         HandleMovement();
         HandleInteractions();
+    }
+
+    private void GameInputOnOnInteractAction(object sender, EventArgs e)
+    {
+        // Fetch the normalized movement vector from the associated input system.
+        var inputVector = gameInput.GetMovementVectorNormalised();
+
+        // Form the movement direction vector with the inputVector.
+        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        if (moveDir == Vector3.zero)
+            moveDir = _lastInteractDir;
+        else
+            _lastInteractDir = moveDir;
+        const float interactDistance = 2f;
+        if (Physics.Raycast(transform.position, moveDir, out var raycastHit, interactDistance, counterLayerMask))
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
+                clearCounter.Interact();
     }
 
     /// <summary>
@@ -44,10 +66,15 @@ public class Player : MonoBehaviour
         const float interactDistance = 2f;
         if (Physics.Raycast(transform.position, moveDir, out var raycastHit, interactDistance, counterLayerMask))
             if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
-                clearCounter.Interact();
+            {
+                // clearCounter.Interact();
+            }
     }
 
     /// <summary>
+    ///     Handles the movement of the player based on the input from the game's input system. It calculates a
+    ///     directional vector for the movement, checks if the planned movement would result in a collision and alters
+    ///     the direction if so. The player's position is updated as per the final calculated movement vector.
     /// </summary>
     private void HandleMovement()
     {
