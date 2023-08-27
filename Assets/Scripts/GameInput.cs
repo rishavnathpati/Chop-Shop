@@ -10,11 +10,15 @@ public class GameInput : MonoBehaviour
         _playerInputActions.Player.Enable();
     }
 
+    /// <summary>
+    /// Gets the normalized movement vector from the PlayerInputActions.
+    /// </summary>
+    /// <returns>Normalized Vector2 representing player input.</returns>
     public Vector2 GetMovementVectorNormalised()
     {
-        var inputVector = _playerInputActions.Player.Move.ReadValue<Vector2>();
-        inputVector =
-            inputVector.normalized; // we can normalize the vector here or in the PlayerInputAction asset using a processor (normalise vector2)
+        // Reading the value from the PlayerInputAction and normalizing it
+        var inputVector = _playerInputActions.Player.Move.ReadValue<Vector2>().normalized;
+
         return inputVector;
     }
 }
