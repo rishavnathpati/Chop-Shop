@@ -11,7 +11,7 @@ public class GameInput : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets the normalized movement vector from the PlayerInputActions.
+    ///     Gets the normalized movement vector from the PlayerInputActions.
     /// </summary>
     /// <returns>Normalized Vector2 representing player input.</returns>
     public Vector2 GetMovementVectorNormalised()

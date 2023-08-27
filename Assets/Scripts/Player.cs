@@ -7,9 +7,49 @@ public class Player : MonoBehaviour
     [SerializeField] [Range(1, 10)]
     private float speed = 5; // Speed of the player (Adjustable within range from Inspector).
 
+    [SerializeField] private LayerMask counterLayerMask; // LayerMask to check for counters.
+
     private bool _isWalking; // Flag to check if player is walking.
+    private Vector3 _lastInteractDir; // The last direction the player was facing when interacting.
+
 
     private void Update()
+    {
+        HandleMovement();
+        HandleInteractions();
+    }
+
+    /// <summary>
+    ///     Function to check if the player is walking
+    /// </summary>
+    /// <returns></returns>
+    public bool IsWalking()
+    {
+        return _isWalking;
+    }
+
+    /// <summary>
+    /// </summary>
+    private void HandleInteractions()
+    {
+        // Fetch the normalized movement vector from the associated input system.
+        var inputVector = gameInput.GetMovementVectorNormalised();
+
+        // Form the movement direction vector with the inputVector.
+        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        if (moveDir == Vector3.zero)
+            moveDir = _lastInteractDir;
+        else
+            _lastInteractDir = moveDir;
+        const float interactDistance = 2f;
+        if (Physics.Raycast(transform.position, moveDir, out var raycastHit, interactDistance, counterLayerMask))
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
+                clearCounter.Interact();
+    }
+
+    /// <summary>
+    /// </summary>
+    private void HandleMovement()
     {
         // Fetch the normalized movement vector from the associated input system.
         var inputVector = gameInput.GetMovementVectorNormalised();
@@ -64,14 +104,5 @@ public class Player : MonoBehaviour
 
         // Smoothly rotate the player to face the moving direction
         transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * 10);
-    }
-
-    /// <summary>
-    ///     Function to check if the player is walking
-    /// </summary>
-    /// <returns></returns>
-    public bool IsWalking()
-    {
-        return _isWalking;
     }
 }
