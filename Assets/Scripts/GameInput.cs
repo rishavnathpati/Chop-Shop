@@ -23,8 +23,7 @@ public class GameInput : MonoBehaviour
     private void InteractOnPerformed(InputAction.CallbackContext obj)
     {
         OnInteractAction?.Invoke(this, EventArgs.Empty);
-    }
-
+    } // ReSharper disable Unity.PerformanceAnalysis
     /// <summary>
     ///     Gets the normalized movement vector from the PlayerInputActions.
     /// </summary>

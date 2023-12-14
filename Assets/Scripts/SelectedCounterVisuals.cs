@@ -11,17 +11,7 @@ public class SelectedCounterVisuals : MonoBehaviour
     }
 
     private void Player_OnSelectedCounterChanged(object sender, Player.SelectedCounterChangedEventArgs e)
-
     {
-        if (e.SelectedCounter == clearCounter)
-        {
-            Debug.Log("Selected");
-            selectedVisualGameObject.SetActive(true);
-        }
-        else
-        {
-            Debug.Log("Deselected");
-            selectedVisualGameObject.SetActive(false);
-        }
+        selectedVisualGameObject.SetActive(e.SelectedCounter == clearCounter);
     }
 }
