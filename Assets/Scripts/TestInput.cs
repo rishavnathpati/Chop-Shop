@@ -21,8 +21,8 @@ public class TestInput : MonoBehaviour
 
     private void FixedUpdate()
     {
-        var inputVector = _playerInputActions.Player.Movement.ReadValue<Vector2>();
-        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        Vector2 inputVector = _playerInputActions.Player.Movement.ReadValue<Vector2>();
+        Vector3 moveDir = new(inputVector.x, 0, inputVector.y);
 
         _playerTransform.position += moveDir * (Time.deltaTime * speed);
         transform.forward = Vector3.Slerp(_playerTransform.forward, moveDir, Time.deltaTime * 10);

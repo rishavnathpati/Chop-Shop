@@ -9,13 +9,22 @@ public class Player : MonoBehaviour
     private float speed = 5; // Speed of the player (Adjustable within range from Inspector).
 
     [SerializeField] private LayerMask counterLayerMask; // LayerMask to check for counters.
-
     private bool _isWalking; // Flag to check if player is walking.
     private Vector3 _lastInteractDir; // The last direction the player was facing when interacting.
+    private ClearCounter _selectedCounter; // The counter that the player is currently interacting with.
+    public static Player Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+    }
 
     private void Start()
     {
-        gameInput.OnInteractAction += GameInputOnOnInteractAction;
+        gameInput.OnInteractAction += GameInputOnInteractAction;
     }
 
     private void Update()
@@ -24,21 +33,17 @@ public class Player : MonoBehaviour
         HandleInteractions();
     }
 
-    private void GameInputOnOnInteractAction(object sender, EventArgs e)
-    {
-        // Fetch the normalized movement vector from the associated input system.
-        var inputVector = gameInput.GetMovementVectorNormalised();
+    public event EventHandler<SelectedCounterChangedEventArgs> OnSelectedCounterChanged;
 
-        // Form the movement direction vector with the inputVector.
-        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
-        if (moveDir == Vector3.zero)
-            moveDir = _lastInteractDir;
-        else
-            _lastInteractDir = moveDir;
-        const float interactDistance = 2f;
-        if (Physics.Raycast(transform.position, moveDir, out var raycastHit, interactDistance, counterLayerMask))
-            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
-                clearCounter.Interact();
+    /// <summary>
+    ///     Event handler for the Interact action
+    /// </summary>
+    /// <param name="sender"> GameInput </param>
+    /// <param name="e"> EventArgs </param>
+    private void GameInputOnInteractAction(object sender, EventArgs e)
+    {
+        if (_selectedCounter != null)
+            _selectedCounter.Interact();
     }
 
     /// <summary>
@@ -55,20 +60,46 @@ public class Player : MonoBehaviour
     private void HandleInteractions()
     {
         // Fetch the normalized movement vector from the associated input system.
-        var inputVector = gameInput.GetMovementVectorNormalised();
+        Vector2 inputVector = gameInput.GetMovementVectorNormalised();
 
         // Form the movement direction vector with the inputVector.
-        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        Vector3 moveDir = new(inputVector.x, 0, inputVector.y);
         if (moveDir == Vector3.zero)
             moveDir = _lastInteractDir;
         else
             _lastInteractDir = moveDir;
+
+        // Define the player's capsule shape for Physic's CapsuleCast and the distance to move on this frame.
         const float interactDistance = 2f;
-        if (Physics.Raycast(transform.position, moveDir, out var raycastHit, interactDistance, counterLayerMask))
+
+        // Execute a CapsuleCast to check if the calculated moment would result in a collision.
+        if (Physics.Raycast(transform.position, moveDir, out RaycastHit raycastHit, interactDistance, counterLayerMask))
+        {
             if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
             {
                 // clearCounter.Interact();
+                if (clearCounter != _selectedCounter) SetSelectedCounter(clearCounter);
             }
+            else
+            {
+                SetSelectedCounter(null);
+            }
+        }
+        else
+        {
+            SetSelectedCounter(null);
+        }
+
+        Debug.Log(_selectedCounter);
+    }
+
+    private void SetSelectedCounter(ClearCounter clearCounter)
+    {
+        _selectedCounter = clearCounter;
+        OnSelectedCounterChanged?.Invoke(this, new SelectedCounterChangedEventArgs
+        {
+            SelectedCounter = _selectedCounter
+        });
     }
 
     /// <summary>
@@ -79,26 +110,26 @@ public class Player : MonoBehaviour
     private void HandleMovement()
     {
         // Fetch the normalized movement vector from the associated input system.
-        var inputVector = gameInput.GetMovementVectorNormalised();
+        Vector2 inputVector = gameInput.GetMovementVectorNormalised();
 
         // Form the movement direction vector with the inputVector.
-        var moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        Vector3 moveDirection = new(inputVector.x, 0, inputVector.y);
 
         // Define the player's capsule shape for Physic's CapsuleCast and the distance to move on this frame.
         const float playerRadius = .7f;
         const float playerHeight = 2f;
-        var moveDistance = Time.deltaTime * speed;
+        float moveDistance = Time.deltaTime * speed;
 
         // Execute a CapsuleCast to check if the calculated moment would result in a collision.
-        var canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight,
-            playerRadius, moveDir, moveDistance);
+        bool canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight,
+            playerRadius, moveDirection, moveDistance);
 
         if (!canMove)
         {
             // Cannot move forward, try left or right
 
             // Create a new movement direction only considering X (left or right).
-            var moveDirX = new Vector3(moveDir.x, 0, 0).normalized;
+            Vector3 moveDirX = new Vector3(moveDirection.x, 0, 0).normalized;
 
             // Try a CapsuleCast with the new direction
             canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight,
@@ -107,29 +138,34 @@ public class Player : MonoBehaviour
             if (canMove)
             {
                 // If successful, update movement direction
-                moveDir = moveDirX;
+                moveDirection = moveDirX;
             }
             else
             {
                 // Else, create a new movement direction only considering Z (forward or backward)
-                var moveDirZ = new Vector3(0, 0, moveDir.z).normalized;
+                Vector3 moveDirZ = new Vector3(0, 0, moveDirection.z).normalized;
 
                 // Try a CapsuleCast with the new direction
                 canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight,
                     playerRadius, moveDirZ, moveDistance);
                 if (canMove)
                     // If successful, update movement direction
-                    moveDir = moveDirZ;
+                    moveDirection = moveDirZ;
             }
         }
 
         // Move the player if no obstructions are found
-        if (canMove) transform.position += moveDir * moveDistance;
+        if (canMove) transform.position += moveDirection * moveDistance;
 
         // Set the walking state based on whether there's any movement or not
-        _isWalking = moveDir != Vector3.zero;
+        _isWalking = moveDirection != Vector3.zero;
 
         // Smoothly rotate the player to face the moving direction
-        transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * 10);
+        transform.forward = Vector3.Slerp(transform.forward, moveDirection, Time.deltaTime * 10);
+    }
+
+    public class SelectedCounterChangedEventArgs : EventArgs
+    {
+        public ClearCounter SelectedCounter { get; set; }
     }
 }

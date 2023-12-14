@@ -10,12 +10,16 @@ public class GameInput : MonoBehaviour
     {
         _playerInputActions = new PlayerInputActions();
         _playerInputActions.Player.Enable();
-
         _playerInputActions.Player.Interact.performed += InteractOnPerformed;
     }
 
+    // Event handler for the Interact action
     public event EventHandler OnInteractAction;
 
+    /// <summary>
+    ///     Invokes the OnInteractAction event.
+    /// </summary>
+    /// <param name="obj"> InputAction.CallbackContext </param>
     private void InteractOnPerformed(InputAction.CallbackContext obj)
     {
         OnInteractAction?.Invoke(this, EventArgs.Empty);
@@ -28,7 +32,7 @@ public class GameInput : MonoBehaviour
     public Vector2 GetMovementVectorNormalised()
     {
         // Reading the value from the PlayerInputAction and normalizing it
-        var inputVector = _playerInputActions.Player.Move.ReadValue<Vector2>().normalized;
+        Vector2 inputVector = _playerInputActions.Player.Move.ReadValue<Vector2>().normalized;
 
         return inputVector;
     }
